@@ -20,6 +20,8 @@ solarTWh<-read_csv("solartwh.csv")
 solarGW<-solarTWh %>% mutate(Year=ymd(paste0(Year,"-01-01")),cumGWinstalled=TWh*1e12/(solarCF*24*365)/1e9) %>%
   select(cumGWinstalled,Year)
 print(solarGW)
+firstYear<-2012
+lastYear<-2050
 thisYear<-2022
 years<-28
 pvGWThisYear<-1145
@@ -44,6 +46,10 @@ makeFail<-function(mtbf) {
     (1-exp(-lambda*(n-1)))*p
   }
 }
+nyears<-lastYear-firstYear+1
+bFailed<-rep(0,nyears)
+bRecycled<-rep(0,nyears)
+bRecycledGWh<-rep(0,nyears)
 
 
 
@@ -58,7 +64,8 @@ ui <- fluidPage(
         sidebarPanel(
             sliderInput("pvGrowthRate1","Annual PV growth rate  to 2030 (%)",min = 1, max = 30, value = 23),
             sliderInput("pvGrowthRate2","Annual PV growth rate 2030 to 50 (%)",min = 1, max = 30, value = 12),
-            sliderInput("pvTonnagePerGW","Tonnage per GW of PV panels ('000 tonnes)",min = 30, max = 150, value = 70)
+            sliderInput("pvTonnagePerGW","Tonnage per GW of PV panels ('000 tonnes)",min = 30, max = 150, value = 70),
+            sliderInput("pvLifeSpan","Average lifespan (years))",min = 15, max = 200, value = 25)
         ),
 
         # Show a plot of the generated distribution
@@ -89,6 +96,7 @@ The IEA Net Zero by 2050 target is for 18,750 GW ([as updated in 2023](https://i
 # Define server logic required to draw a histogram
 server <- function(input, output) {
     output$distPlot <- renderPlot({
+      failFun<-makeFail(input$pvLifeSpan)
       pvProdto2030<-makeExpProduction(input$pvGrowthRate1,pvGWThisYear,8)
       df1<-tibble(
         cumGWinstalled=(1:8 %>% map_dbl(pvProdto2030)),
@@ -100,8 +108,24 @@ server <- function(input, output) {
         Year=seq(ymd('2031-01-01'),ymd('2050-01-01'),by='1 year')
       )
       df<-bind_rows(solarGW,df1,df2)
-      print(df,n=30)
-      df %>% ggplot(aes(x=Year,y=cumGWinstalled))+geom_col()
+      df <- df %>% mutate(produced=cumGWinstalled-lag(cumGWinstalled))
+      df$produced[1]=0
+      print(df,n=60)
+      
+      print("==================================================")
+      for(i in 1:nyears) {
+        if (i<nyears) {
+          for(n in (i+1):nyears) {
+            bFailed[n]<-bFailed[n]+failFun(n,df$produced[i])
+           # cat(paste0("i,n,produced[i],failed[n]:",i,",",n,",P=",df$produced[i],",F=",bFailed[n],"\n"))
+          }
+        }
+      }
+      df$failed=bFailed
+      df2 <- df %>% pivot_longer(cols=c("produced","failed","cumGWinstalled"),names_to="State",values_to="GW")
+      
+      
+      df2 %>% ggplot(aes(x=Year,y=GW,fill=State))+geom_col(position="dodge")
     })
 }
 
