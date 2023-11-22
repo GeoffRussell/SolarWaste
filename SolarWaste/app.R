@@ -62,10 +62,12 @@ ui <- fluidPage(
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
-            sliderInput("pvGrowthRate1","Annual PV growth rate  to 2030 (%)",min = 1, max = 30, value = 23),
-            sliderInput("pvGrowthRate2","Annual PV growth rate 2030 to 50 (%)",min = 1, max = 30, value = 12),
-            sliderInput("pvTonnagePerGW","Tonnage per GW of PV panels ('000 tonnes)",min = 30, max = 150, value = 70),
-            sliderInput("pvLifeSpan","Average lifespan (years))",min = 15, max = 200, value = 25)
+            sliderInput("pvGrowthRate1","Growth rate to 2030 (%)",min = 1, max = 30, value = 23),
+            sliderInput("pvGrowthRate2","Growth rate 2030 to 2050 (%)",min = 1, max = 30, value = 12),
+            sliderInput("pvTonnagePerGW","Panel tonnage per GW ('000 tonnes)",min = 30, max = 150, value = 70),
+            sliderInput("pvLifeSpan","Average lifespan (years))",min = 15, max = 200, value = 25),
+            sliderInput("pvRecycling22","Recycling Capacity 2022 (GW)",min = 10, max = 200, value = 10),
+            sliderInput("pvRecyclingCAGR","Recycling CAGR (%)",min = 5, max = 50, value = 5)
         ),
 
         # Show a plot of the generated distribution
@@ -87,6 +89,23 @@ the flow of materials.
 
 The IEA Net Zero by 2050 target is for 18,750 GW ([as updated in 2023](https://iea.blob.core.windows.net/assets/9a698da4-4002-4e53-8ef3-631d8971bf84/NetZeroRoadmap_AGlobalPathwaytoKeepthe1.5CGoalinReach-2023Update.pdf)).
 
+### Guide to the graph 
+
+PV panels are assumed to be produced and installed according to two rates; the 
+rate from now to 2030 and the rate from 2030 to 2050. They have an average lifespan which determines the
+failure rate using a exponential failure model (one of a number of standard failure models). Any failed panel
+can be recycled upto the limit of the recycling capacity which is determined by an estimate of the capacity
+in 2022 and a specified growth rate. 
+
+So the chart gives various numbers.
+
+1. cumfailed ... these are panels which have failed but can't be recycled because of a lack of capacity 
+1. cuminstalled ... total GW included failed panels  
+1. operational ... cuminstalled - cumfailed + recycled
+1. produced ... new production from freshly mined materials 
+1. recycled ... production from recycled material; assumed to be perfect 
+
+
                     "),
            plotOutput("distPlot")
         )
@@ -96,6 +115,7 @@ The IEA Net Zero by 2050 target is for 18,750 GW ([as updated in 2023](https://i
 # Define server logic required to draw a histogram
 server <- function(input, output) {
     output$distPlot <- renderPlot({
+      recycleFun<-makeRecycle(input$pvRecyclingCAGR,input$pvRecycling22)
       failFun<-makeFail(input$pvLifeSpan)
       pvProdto2030<-makeExpProduction(input$pvGrowthRate1,pvGWThisYear,8)
       df1<-tibble(
@@ -122,10 +142,20 @@ server <- function(input, output) {
         }
       }
       df$failed=bFailed
-      df2 <- df %>% pivot_longer(cols=c("produced","failed","cumGWinstalled"),names_to="State",values_to="GW")
+      df$recycled<-map2_dbl(bFailed,1:nyears,recycleFun)
+ #    write_csv(df %>% select(failed,recycled),"xxx.csv")
+      
+      df2 <- df %>% mutate(operational=cumGWinstalled-failed+recycled,cumFailed=failed-recycled,cumInstalled=cumGWinstalled) %>%
+        
+        pivot_longer(cols=c("produced","cumFailed","recycled","operational","cumInstalled"),names_to="State",values_to="GW")
+      
+      rccagr<-input$pvRecyclingCAGR
+      rc22<-input$pvRecycling22
+      df3<-df2 %>% select(Year,State,GW) %>% pivot_wider(names_from=State,values_from=GW)
+      write_csv(df3,paste0("solarpv-statetable",rccagr,"pc-",rc22,"GW.csv"))
       
       
-      df2 %>% ggplot(aes(x=Year,y=GW,fill=State))+geom_col(position="dodge")
+      df2 %>% ggplot(aes(x=Year,y=GW,fill=State))+geom_col(position="dodge")+labs(y="Gigawatts")
     })
 }
 
