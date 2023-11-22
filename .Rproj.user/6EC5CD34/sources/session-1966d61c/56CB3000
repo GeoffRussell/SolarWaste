@@ -1,0 +1,27 @@
+{
+    "id": "56CB3000",
+    "path": "~/ARTICLES/STATS/MasteringShiny/SolarWaste/SolarWaste/app.R",
+    "project_path": "SolarWaste/app.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1700613797168.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "73,5",
+        "scrollLine": "70",
+        "marks": "a:81,17\nb:84,6"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1700617083,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1700617083568,
+    "read_only": false,
+    "read_only_alternatives": []
+}
