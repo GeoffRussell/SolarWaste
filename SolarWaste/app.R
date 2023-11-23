@@ -129,29 +129,39 @@ ui <- fluidPage(
             sliderInput("pvGrowthRate1","Growth rate to 2030 (%)",min = 1, max = 30, value = 23),
             sliderInput("pvGrowthRate2","Growth rate 2030 to 2050 (%)",min = 1, max = 30, value = 11),
             sliderInput("pvTonnagePerGW","Panel tonnage per GW ('000 tonnes)",min = 30, max = 150, value = 70),
-            sliderInput("pvLifeSpan","Average lifespan (years))",min = 15, max = 200, value = 30),
-            sliderInput("pvRecycling22","Recycling Capacity 2022 (GW)",min = 10, max = 200, value = 10),
-            sliderInput("pvRecyclingCAGR","Recycling CAGR (%)",min = 5, max = 50, value = 5)
+            sliderInput("pvLifeSpan","Average lifespan (years))",min = 15, max = 50, value = 30),
+            sliderInput("pvRecycling22","Recycling Capacity 2022 (GW)",min = 10, max = 50, value = 10),
+            sliderInput("pvRecyclingCAGR","Recycling CAGR (%)",min = 5, max = 20, value = 5)
         ),
 
         # Show a plot of the generated distribution
         
         mainPanel(
-           markdown("
-### Solar panel wastage generation           
+           plotOutput("distPlot"),
+           uiOutput("notes"),
+markdown("
 
-We model the global production of solar PV panel waste based on growth rates in both production and
-recycling. We assume magic recycling whereby every tonne of panels is removed from the waste stream 
-and returned directly to service.
+### Model assumptions 
 
-PV Growth Rates follow the IEA netzero by 2050 plan in that they aren't constant from now to 2050, but
-have two values, one from now to 2030 and the second rate from 2030 to 2050. This makes intuitive sense because it 
-is much easier to grow by some percentage when you are small than when you are large; the bottleneck typically being
-the flow of materials.
+The graph below models the global rollout, failure, recycling and waste associated with solar PV panels.
+
+The initial settings mirror the assumptions in the IEA netzero by 2050 plan.
+They envisage compound annual growth rates (CAGR) of 23% to 2030 and 11% between 2030 and
+2050. They don't, as far as I know, specify a failure model for the panels, but one is implied by
+their numbers. I've used an average panel lifespan of 30 years and a fairly standard failure model. When
+this failure model is added to the growth model, then the operational GW of solar in 2050 is a reasonable
+match to the IEA target.
+
+We add magic recycling to the model whereby panels which fail are simply added back to the
+installation stream until the recycling capacity is reached. We allow the recycling capacity and its growth
+rate to be explored; like all the other model parameters.
 
 ### IEA Net Zero target 
 
-The IEA Net Zero by 2050 target is for 18,750 GW ([as updated in 2023](https://iea.blob.core.windows.net/assets/9a698da4-4002-4e53-8ef3-631d8971bf84/NetZeroRoadmap_AGlobalPathwaytoKeepthe1.5CGoalinReach-2023Update.pdf)).
+The IEA Net Zero by 2050 target for solar PV is 18,750 GW ([as updated in 2023](https://iea.blob.core.windows.net/assets/9a698da4-4002-4e53-8ef3-631d8971bf84/NetZeroRoadmap_AGlobalPathwaytoKeepthe1.5CGoalinReach-2023Update.pdf)).
+The initial settings on this model yield 17,440 GW. The difference may be down to some minor difference in the failure model or the
+initial conditions. I use the World Energy Statistics data for historical PV capacity; which may not be what the 
+IEA use.
 
 ### Guide to the graph 
 
@@ -169,10 +179,7 @@ So the chart gives various numbers.
 1. produced ... new production from freshly mined materials 
 1. recycled ... production from recycled material; assumed to be perfect 
 
-
-                    "),
-           plotOutput("distPlot"),
-           uiOutput("notes")
+                    ")
         )
     )
 )
@@ -184,8 +191,8 @@ server <- function(input, output) {
       op2050<-df %>% filter(State=="operational") %>% summarise(mx=max(GW))
       waste2050<-df %>% filter(State=="cumFailed") %>% summarise(mx=max(GW))
       markdown(paste0(
-        "GW of operational solar in 2050: ",comma(op2050),"\n\n",
-        "Accumulated waste by 2050: ",comma(waste2050*1000*input$pvTonnagePerGW/1e6)," million tonnes\n"
+        "GW of operational solar in 2050: **",comma(op2050),"**\n\n",
+        "Accumulated waste by 2050: **",comma(waste2050*1000*input$pvTonnagePerGW/1e6),"** million tonnes\n"
         ))
     })
     output$distPlot <- renderPlot({
