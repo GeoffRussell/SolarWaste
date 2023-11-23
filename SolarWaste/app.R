@@ -9,6 +9,8 @@
 
 library(shiny)
 library(tidyverse)
+comma<-function(x) prettyNum(signif(x,digits=4),big.mark=",")
+
 # This global solar capacity factor was chosen so that the TWh for 2021 in the World Energy Stats (ex-BP) matches
 # the GW in the IEA Net Zero plan
 solarCF<-0.13
@@ -24,10 +26,8 @@ firstYear<-2012
 lastYear<-2050
 thisYear<-2022
 years<-28
-pvGWThisYear<-1145
+pvGWThisYear<-1161
 # difference between 2021 and 2022
-pvGrowthPerc<-(1145-925)/925
-print(paste0("pv growth percent 2021 to 2022: ",pvGrowthPerc))
 pvGrowthto30<-23
 pvGrowth30to50<-12
 
@@ -40,6 +40,10 @@ makeRecycle<-function(percent,GWcapnow) {
     ifelse(failed<capacity,failed,capacity)
   }
 }
+#----------------------------------------------------------------------
+# we have p items and the probability of failure before time t=n-1 is
+# 1 - exp(-lambda*t)
+#----------------------------------------------------------------------
 makeFail<-function(mtbf) {
   lambda<-1/mtbf
   function(n,p) {
@@ -50,6 +54,66 @@ nyears<-lastYear-firstYear+1
 bFailed<-rep(0,nyears)
 bRecycled<-rep(0,nyears)
 bRecycledGWh<-rep(0,nyears)
+genWasteData<-function(input) {
+      recycleFun<-makeRecycle(input$pvRecyclingCAGR,input$pvRecycling22)
+      failFun<-makeFail(input$pvLifeSpan)
+      pvProdto2030<-makeExpProduction(input$pvGrowthRate1,pvGWThisYear,8)
+      df1<-tibble(
+        cumGWinstalled=(1:8 %>% map_dbl(pvProdto2030)),
+        Year=seq(ymd('2023-01-01'),ymd('2030-01-01'),by='1 year')
+      )
+      pvProdto2050<-makeExpProduction(input$pvGrowthRate2,df1$cumGWinstalled[8],19)
+      df2<-tibble(
+        cumGWinstalled=(1:20 %>% map_dbl(pvProdto2050)),
+        Year=seq(ymd('2031-01-01'),ymd('2050-01-01'),by='1 year')
+      )
+      df<-bind_rows(solarGW,df1,df2)
+      df <- df %>% mutate(produced=cumGWinstalled-lag(cumGWinstalled))
+      df$produced[1]=0
+      print(df,n=60)
+      write_csv(df,"production.csv")
+      
+      #-----------------------------------------------------------------------------------------------------------
+      # TESTING the reliability function
+      # We set up 100 widgets in year 1 and we should have 63% fail at year 26 (given MTBF of 25 years by default)
+      #-----------------------------------------------------------------------------------------------------------
+      #trel<-rep(0,nyears)
+      #tfail<-rep(0,nyears)
+      #trel[1]<-100
+      #for(i in 1:nyears) {
+      #  if (i<nyears) {
+      #    for(n in (i+1):nyears) {
+      #      tfail[n]<-tfail[n]+failFun(n,trel[i])
+      #      cat(paste0("i,n,trel[i],tfail[n]:",i,",",n,",P=",trel[i],",F=",tfail[n],"\n"))
+      #    }
+      #  }
+      #}
+      
+      print("==================================================")
+      for(i in 1:nyears) {
+        if (i<nyears) {
+          for(n in (i+1):nyears) {
+            bFailed[n]<-bFailed[n]+failFun(n,df$produced[i])
+            # cat(paste0("i,n,produced[i],failed[n]:",i,",",n,",P=",df$produced[i],",F=",bFailed[n],"\n"))
+          }
+        }
+      }
+      df$failed=bFailed
+      df$recycled<-map2_dbl(bFailed,1:nyears,recycleFun)
+      write_csv(df %>% mutate(cumfailed=failed,cumrecycled=recycled) %>% select(produced,cumfailed,cumrecycled),"recycled.csv")
+      
+      df2 <- df %>% mutate(operational=cumGWinstalled-failed+recycled,cumFailed=failed-recycled,cumInstalled=cumGWinstalled) %>%
+        
+        pivot_longer(cols=c("produced","cumFailed","recycled","operational","cumInstalled"),names_to="State",values_to="GW")
+      
+      rccagr<-input$pvRecyclingCAGR
+      rc22<-input$pvRecycling22
+      df3<-df2 %>% select(Year,State,GW) %>% pivot_wider(names_from=State,values_from=GW)
+      #write_csv(df3,paste0("solarpv-statetable",rccagr,"pc-",rc22,"GW.csv"))
+      
+      
+      df2
+}
 
 
 
@@ -63,9 +127,9 @@ ui <- fluidPage(
     sidebarLayout(
         sidebarPanel(
             sliderInput("pvGrowthRate1","Growth rate to 2030 (%)",min = 1, max = 30, value = 23),
-            sliderInput("pvGrowthRate2","Growth rate 2030 to 2050 (%)",min = 1, max = 30, value = 12),
+            sliderInput("pvGrowthRate2","Growth rate 2030 to 2050 (%)",min = 1, max = 30, value = 11),
             sliderInput("pvTonnagePerGW","Panel tonnage per GW ('000 tonnes)",min = 30, max = 150, value = 70),
-            sliderInput("pvLifeSpan","Average lifespan (years))",min = 15, max = 200, value = 25),
+            sliderInput("pvLifeSpan","Average lifespan (years))",min = 15, max = 200, value = 30),
             sliderInput("pvRecycling22","Recycling Capacity 2022 (GW)",min = 10, max = 200, value = 10),
             sliderInput("pvRecyclingCAGR","Recycling CAGR (%)",min = 5, max = 50, value = 5)
         ),
@@ -107,55 +171,30 @@ So the chart gives various numbers.
 
 
                     "),
-           plotOutput("distPlot")
+           plotOutput("distPlot"),
+           uiOutput("notes")
         )
     )
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
+    output$notes <- renderUI({
+      df<-genWasteData(input)
+      op2050<-df %>% filter(State=="operational") %>% summarise(mx=max(GW))
+      waste2050<-df %>% filter(State=="cumFailed") %>% summarise(mx=max(GW))
+      markdown(paste0(
+        "GW of operational solar in 2050: ",comma(op2050),"\n\n",
+        "Accumulated waste by 2050: ",comma(waste2050*1000*input$pvTonnagePerGW/1e6)," million tonnes\n"
+        ))
+    })
     output$distPlot <- renderPlot({
-      recycleFun<-makeRecycle(input$pvRecyclingCAGR,input$pvRecycling22)
-      failFun<-makeFail(input$pvLifeSpan)
-      pvProdto2030<-makeExpProduction(input$pvGrowthRate1,pvGWThisYear,8)
-      df1<-tibble(
-        cumGWinstalled=(1:8 %>% map_dbl(pvProdto2030)),
-        Year=seq(ymd('2023-01-01'),ymd('2030-01-01'),by='1 year')
-      )
-      pvProdto2050<-makeExpProduction(input$pvGrowthRate2,df1$cumGWinstalled[8],19)
-      df2<-tibble(
-        cumGWinstalled=(1:20 %>% map_dbl(pvProdto2050)),
-        Year=seq(ymd('2031-01-01'),ymd('2050-01-01'),by='1 year')
-      )
-      df<-bind_rows(solarGW,df1,df2)
-      df <- df %>% mutate(produced=cumGWinstalled-lag(cumGWinstalled))
-      df$produced[1]=0
-      print(df,n=60)
-      
-      print("==================================================")
-      for(i in 1:nyears) {
-        if (i<nyears) {
-          for(n in (i+1):nyears) {
-            bFailed[n]<-bFailed[n]+failFun(n,df$produced[i])
-           # cat(paste0("i,n,produced[i],failed[n]:",i,",",n,",P=",df$produced[i],",F=",bFailed[n],"\n"))
-          }
-        }
-      }
-      df$failed=bFailed
-      df$recycled<-map2_dbl(bFailed,1:nyears,recycleFun)
- #    write_csv(df %>% select(failed,recycled),"xxx.csv")
-      
-      df2 <- df %>% mutate(operational=cumGWinstalled-failed+recycled,cumFailed=failed-recycled,cumInstalled=cumGWinstalled) %>%
-        
-        pivot_longer(cols=c("produced","cumFailed","recycled","operational","cumInstalled"),names_to="State",values_to="GW")
-      
-      rccagr<-input$pvRecyclingCAGR
-      rc22<-input$pvRecycling22
-      df3<-df2 %>% select(Year,State,GW) %>% pivot_wider(names_from=State,values_from=GW)
-      write_csv(df3,paste0("solarpv-statetable",rccagr,"pc-",rc22,"GW.csv"))
-      
-      
-      df2 %>% ggplot(aes(x=Year,y=GW,fill=State))+geom_col(position="dodge")+labs(y="Gigawatts")
+      df<-genWasteData(input)
+      mx<-df %>% filter(State=="operational") %>% summarise(mx=max(GW))
+      print(mx)
+      df %>% ggplot(aes(x=Year,y=GW,fill=State))+
+        geom_col(position="dodge")+labs(y="Gigawatts") +
+        annotate('text',x=ymd("2030-01-01"),y=30000,label=paste0("Operational GW of PV in 2050:",comma(mx)))
     })
 }
 
