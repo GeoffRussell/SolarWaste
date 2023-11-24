@@ -1,0 +1,4 @@
+This project is a Shiny app that calculates the tonnage of 
+waste associated with a global solar PV panel rollout. You can
+change various growth rates, recycling rates, and panel lifetimes to 
+estimate the impact of these on waste tonnages.
