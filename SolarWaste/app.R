@@ -177,7 +177,7 @@ server <- function(input, output) {
       )
       df<-bind_rows(solarGW,df1,df2)
       df <- df %>% mutate(produced=cumGWinstalled-lag(cumGWinstalled))
-      df$produced[1]=0
+      df$produced[1]=df$cumGWinstalled[1]
       print(df,n=60)
       write_csv(df,"production.csv")
       
