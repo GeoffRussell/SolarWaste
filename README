@@ -1,6 +1,16 @@
-This project is a Shiny app that calculates the tonnage of waste
-associated with a global solar PV panel rollout. You can change various
-growth rates, recycling rates, and panel lifetimes to estimate the impact
-of these on waste tonnages.
+This project is a R Shiny dashboard that calculates the tonnage of waste
+associated with a global solar PV panel rollout. 
+
+The model is parameterised allowing you to change:
+
+1. Growth rate from 2022 to 2030
+2. Growth rate from 2031 to 2050
+3. Tonnage of material per gigawatt (GW) of panels
+4. Panel average lifespan
+5. Recycling capacity in 2022 
+6. Recycling growth rate 
+
+
+
 
 
