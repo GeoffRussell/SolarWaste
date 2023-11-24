@@ -51,9 +51,9 @@ makeFail<-function(mtbf) {
   }
 }
 nyears<-lastYear-firstYear+1
-bFailed<-rep(0,nyears)
 bRecycled<-rep(0,nyears)
 bRecycledGWh<-rep(0,nyears)
+bFailed<-rep(0,nyears)
 
 
 
