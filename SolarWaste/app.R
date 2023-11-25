@@ -12,16 +12,9 @@ library(tidyverse)
 library(markdown)
 comma<-function(x) prettyNum(signif(x,digits=4),big.mark=",")
 markdownFile<-function(filename) {
-  #t<-read_file(pipe(paste0("date >>.m4.log && cat m4defs.txt ",filename," | m4 2>>.m4.log")))
-  #t<-read_file(pipe(paste0("cat m4defs.txt ",filename," | m4 ")))
   t<-read_file(filename)
-  #  s<-str_replace_all(t,'\\[1\\] "(.*)"','\\1')
   markdown(t)
 }
-
-
-
-
 
 # This global solar capacity factor was chosen so that the TWh for 2021 in the World Energy Stats (ex-BP) matches
 # the GW in the IEA Net Zero plan
@@ -53,8 +46,8 @@ makeRecycle<-function(percent,GWcapnow) {
   }
 }
 #----------------------------------------------------------------------
-# we have p items and the probability of failure before time t=n-1 is
-# 1 - exp(-lambda*t)
+# We have two failure closures here, but only use the second, the first is what
+# we started with, but it just a special case of the second function
 #----------------------------------------------------------------------
 makeFail<-function(mtbf) {
   lambda<-1/mtbf
@@ -62,7 +55,9 @@ makeFail<-function(mtbf) {
     (1-exp(-lambda*(n-1)))*p
   }
 }
-# generalised to Weibull
+#-------------------------------------
+# generalised to Weibull distribution
+#-------------------------------------
 makeWeibullFail<-function(mtbf,k) {
   lambda<-1/mtbf
   function(n,p) {
@@ -75,15 +70,16 @@ bRecycledGWh<-rep(0,nyears)
 bFailed<-rep(0,nyears)
 
 
-
-# Define UI for application that draws a histogram
+# Define UI for application 
 ui <- fluidPage(
 
     # Application title
     titlePanel("Solar Waste Tonnage over time"),
 
-    # Sidebar with a slider input for number of bins 
     sidebarLayout(
+        #-----------------------------------------------------------------------------------
+        # Sidebar with a sliders
+        #-----------------------------------------------------------------------------------
         sidebarPanel(
             sliderInput("pvGrowthRate1","Growth rate to 2030 (%)",min = 1, max = 30, value = 23),
             sliderInput("pvGrowthRate2","Growth rate 2030 to 2050 (%)",min = 1, max = 30, value = 11),
@@ -99,8 +95,9 @@ ui <- fluidPage(
             markdown("Geoff Russell, Alpha Testing, V0.4 November 2023")
         ),
 
-        # Show a plot of the generated distribution
-        
+        #-----------------------------------------------------------------------------------
+        # now the main panel has the plots
+        #-----------------------------------------------------------------------------------
         mainPanel(
            markdown("## Gigawatts of solar PV panels"),
            plotOutput("distPlot"),
@@ -114,11 +111,12 @@ ui <- fluidPage(
     )
 )
 
-# Define server logic required to draw a histogram
+#---------------------------------------------------------------------------------
+# and the server to glue it together
+#---------------------------------------------------------------------------------
 server <- function(input, output) {
     genWasteData<-reactive({
       recycleFun<-makeRecycle(input$pvRecyclingCAGR,input$pvRecycling22)
-      failFun<-makeWeibullFail(input$pvLifeSpan,input$pvQuality)
       pvProdto2030<-makeExpProduction(input$pvGrowthRate1,pvGWThisYear,8)
       df1<-tibble(
         cumGWinstalled=(1:8 %>% map_dbl(pvProdto2030)),
@@ -130,28 +128,21 @@ server <- function(input, output) {
         Year=seq(ymd('2031-01-01'),ymd('2050-01-01'),by='1 year')
       )
       df<-bind_rows(solarGW,df1,df2)
+      
+      #-----------------------------------------------------------------------------
+      # Calculating the failed panels over time 
+      # First we transform the cumulative installation into the amount produced each
+      # year. That's the line with the lag function.
+      # We set the first year manually, because the lag function would miss it 
+      # then we loop. For each year we calculate the failures in all subsequent years 
+      # according to the failure function
+      #-----------------------------------------------------------------------------
+      failFun<-makeWeibullFail(input$pvLifeSpan,input$pvQuality)
       df <- df %>% mutate(produced=cumGWinstalled-lag(cumGWinstalled))
       df$produced[1]=df$cumGWinstalled[1]
       print(df,n=60)
       write_csv(df,"production.csv")
       
-      #-----------------------------------------------------------------------------------------------------------
-      # TESTING the reliability function
-      # We set up 100 widgets in year 1 and we should have 63% fail at year 26 (given MTBF of 25 years by default)
-      #-----------------------------------------------------------------------------------------------------------
-      #trel<-rep(0,nyears)
-      #tfail<-rep(0,nyears)
-      #trel[1]<-100
-      #for(i in 1:nyears) {
-      #  if (i<nyears) {
-      #    for(n in (i+1):nyears) {
-      #      tfail[n]<-tfail[n]+failFun(n,trel[i])
-      #      cat(paste0("i,n,trel[i],tfail[n]:",i,",",n,",P=",trel[i],",F=",tfail[n],"\n"))
-      #    }
-      #  }
-      #}
-      
-      print("==================================================")
       for(i in 1:nyears) {
         if (i<nyears) {
           for(n in (i+1):nyears) {
@@ -161,6 +152,10 @@ server <- function(input, output) {
         }
       }
       df$failed=bFailed
+      # done
+      #----------------------------------------------------------------------------------
+      # the rest is easy, recycling just returns failed stuff to the operational state 
+      #----------------------------------------------------------------------------------
       df$recycled<-map2_dbl(bFailed,1:nyears,recycleFun)
       write_csv(df %>% mutate(cumfailed=failed,cumrecycled=recycled) %>% select(produced,cumfailed,cumrecycled),"recycled.csv")
       
@@ -171,9 +166,7 @@ server <- function(input, output) {
       rccagr<-input$pvRecyclingCAGR
       rc22<-input$pvRecycling22
       df3<-df2 %>% select(Year,State,GW) %>% pivot_wider(names_from=State,values_from=GW)
-      #write_csv(df3,paste0("solarpv-statetable",rccagr,"pc-",rc22,"GW.csv"))
-      
-      
+      # write_csv(df3,paste0("solarpv-statetable",rccagr,"pc-",rc22,"GW.csv"))
       df2
     })
     output$notes <- renderUI({
