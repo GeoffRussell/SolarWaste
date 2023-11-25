@@ -85,7 +85,7 @@ ui <- fluidPage(
             sliderInput("pvGrowthRate2","Growth rate 2030 to 2050 (%)",min = 1, max = 30, value = 11),
             sliderInput("pvTonnagePerGW","Panel tonnage per GW ('000 tonnes)",min = 30, max = 150, value = 70),
             sliderInput("pvLifeSpan","Average lifespan (years))",min = 15, max = 50, value = 30),
-            sliderInput("pvQuality","PV failure parameter (see notes)",min = 1.0, max = 7.0, step=0.1,value = 1),
+            sliderInput("pvFailParm","PV failure parameter (see notes)",min = 1.0, max = 7.0, step=0.1,value = 1),
             sliderInput("pvRecycling22","Recycling Capacity 2022 (GW)",min = 10, max = 50, value = 10),
             sliderInput("pvRecyclingCAGR","Recycling CAGR (%)",min = 5, max = 20, value = 5),
             dateInput("pvStartYear","Pick start date",
@@ -102,6 +102,7 @@ ui <- fluidPage(
            markdown("## Gigawatts of solar PV panels"),
            plotOutput("distPlot"),
            uiOutput("notes"),
+           plotOutput("failPlot"),
            markdown("## Material required"),
            plotOutput("tonnagePlot"),
            markdownFile("model-notes.txt"),
@@ -137,7 +138,7 @@ server <- function(input, output) {
       # then we loop. For each year we calculate the failures in all subsequent years 
       # according to the failure function
       #-----------------------------------------------------------------------------
-      failFun<-makeWeibullFail(input$pvLifeSpan,input$pvQuality)
+      failFun<-makeWeibullFail(input$pvLifeSpan,input$pvFailParm)
       df <- df %>% mutate(produced=cumGWinstalled-lag(cumGWinstalled))
       df$produced[1]=df$cumGWinstalled[1]
       print(df,n=60)
@@ -173,10 +174,52 @@ server <- function(input, output) {
       df<-genWasteData()
       op2050<-df %>% filter(State=="operational") %>% summarise(mx=max(GW))
       waste2050<-df %>% filter(State=="cumFailed") %>% summarise(mx=max(GW))
+      msg<- if (op2050>18749) "" else "**Note: your settings have resulted in an operational level of PV below the IEA Net Zero by 2050 plan (18,750 GW)**" 
       markdown(paste0(
         "Operational PV panels in 2050: **",comma(op2050),"** GW\n\n",
-        "Accumulated PV panel waste by 2050: **",comma(waste2050*1000*input$pvTonnagePerGW/1e6),"** million tonnes\n"
+        "Accumulated PV panel waste by 2050: **",comma(waste2050*1000*input$pvTonnagePerGW/1e6),"** million tonnes\n",
+        "## Failure model\n",
+        msg,"\n\n",
+        "Change the slider to see the impact of different assumptions. The class of models is widely used in product reliability models.\n"
         ))
+    })
+    output$failPlot <- renderPlot({
+      nyears<-100
+      failWeibullRef<-makeWeibullFail(input$pvLifeSpan,1)
+      failWeibull<-makeWeibullFail(input$pvLifeSpan,input$pvFailParm)
+      reffailed<-rep(0,nyears)
+      failed<-rep(0,nyears)
+      df<-tibble(
+        panels=c(100,rep(0,nyears-1)),
+        produced=c(100,rep(0,nyears-1))
+      )
+      for(i in 1:nyears) {
+        if (i<nyears) {
+          for(n in (i+1):nyears) {
+                reffailed[n]<-reffailed[n]+failWeibullRef(n,df$produced[i])
+                failed[n]<-failed[n]+failWeibull(n,df$produced[i])
+          }
+        }
+      }
+      dfout<-tibble(
+        expfail=reffailed,
+        wfail=failed,
+        x=seq(1,100)
+      )
+      if (input$pvFailParm==1) {
+        dfout %>% ggplot()+
+        geom_line(aes(x=x,y=expfail),color="blue") +
+        labs(x="Years",y="Percentage Failed",title=paste0("Basic failure model with average panel life of ",input$pvLifeSpan," years"))
+      } else {
+        dfout %>% ggplot()+
+        geom_line(aes(x=x,y=expfail),color="blue") +
+        geom_line(aes(x=x,y=wfail),color="red")+
+        annotate('text',x=24,y=50,label="k=1",color="blue")+
+        annotate('text',x=22,y=25,label=paste0("k=",input$pvFailParm),color="red")+
+        labs(x="Years",y="Percentage Failed",title=paste0("Various failure models with average panel life of ",
+                                                          input$pvLifeSpan,"years
+Reference (k=1) compared with selected"))
+      }
     })
     output$distPlot <- renderPlot({
       df<-genWasteData()
