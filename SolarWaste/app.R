@@ -107,9 +107,9 @@ ui <- fluidPage(
            uiOutput("notes"),
            markdown("## Material required"),
            plotOutput("tonnagePlot"),
-           markdownFile("../model-notes.txt"),
+           markdownFile("model-notes.txt"),
            imageOutput("irenaimage",height=400),
-           markdownFile("../model-notes1.txt")
+           markdownFile("model-notes1.txt")
         )
     )
 )
@@ -201,7 +201,7 @@ server <- function(input, output) {
       df %>% ggplot(aes(x=Year,y=GW*input$pvTonnagePerGW*1000/1e6,fill=State))+ xlim(y1,ymd("2050-10-10")) +
         geom_col(position="dodge")+labs(y="million tonnes") 
     })
-    output$irenaimage<-renderImage(list(src="../IRENA-2016-japan.png",height="400px"),deleteFile=FALSE)
+    output$irenaimage<-renderImage(list(src="IRENA-2016-japan.png",height="400px"),deleteFile=FALSE)
 }
 
 # Run the application 
