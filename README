@@ -7,8 +7,11 @@ The model is parameterised allowing you to change:
 2. Growth rate from 2031 to 2050
 3. Tonnage of material per gigawatt (GW) of panels
 4. Panel average lifespan
-5. Recycling capacity in 2022 
-6. Recycling growth rate 
+5. Panel failure model parameter
+6. Recycling capacity in 2022 
+7. Recycling growth rate 
+
+There is a testing script failureModelTest.Rmd which plots the failure function(s)
 
 
 

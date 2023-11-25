@@ -31,7 +31,10 @@ firstYear<-2012
 lastYear<-2050
 thisYear<-2022
 years<-28
-pvGWThisYear<-1161
+#---------------------------------------------------------------------------------------------
+# The following figure is from IEA NZ2050 2023 ... the WES2023 figure puts it at 1053 GW
+#---------------------------------------------------------------------------------------------
+pvGWThisYear<-1145
 # difference between 2021 and 2022
 pvGrowthto30<-23
 pvGrowth30to50<-12
@@ -85,7 +88,7 @@ ui <- fluidPage(
             sliderInput("pvGrowthRate2","Growth rate 2030 to 2050 (%)",min = 1, max = 30, value = 11),
             sliderInput("pvTonnagePerGW","Panel tonnage per GW ('000 tonnes)",min = 30, max = 150, value = 70),
             sliderInput("pvLifeSpan","Average lifespan (years))",min = 15, max = 50, value = 30),
-            sliderInput("pvFailParm","PV failure parameter (see notes)",min = 1.0, max = 7.0, step=0.1,value = 1),
+            sliderInput("pvFailParm","PV failure parameter (see notes)",min = 1.0, max = 15.0, step=0.1,value = 1),
             sliderInput("pvRecycling22","Recycling Capacity 2022 (GW)",min = 10, max = 50, value = 10),
             sliderInput("pvRecyclingCAGR","Recycling CAGR (%)",min = 5, max = 20, value = 5),
             dateInput("pvStartYear","Pick start date",
@@ -158,29 +161,32 @@ server <- function(input, output) {
       # the rest is easy, recycling just returns failed stuff to the operational state 
       #----------------------------------------------------------------------------------
       df$recycled<-map2_dbl(bFailed,1:nyears,recycleFun)
-      write_csv(df %>% mutate(cumfailed=failed,cumrecycled=recycled) %>% select(produced,cumfailed,cumrecycled),"recycled.csv")
+      write_csv(df %>% mutate(cumfailed=failed,cumrecycled=recycled) %>% select(produced,cumGWinstalled,cumfailed,cumrecycled),"recycled.csv")
       
+      dcols=c("operational","cumInstalled","cumFailed","recycled","produced")
       df2 <- df %>% mutate(operational=cumGWinstalled-failed+recycled,cumFailed=failed-recycled,cumInstalled=cumGWinstalled) %>%
         
-        pivot_longer(cols=c("produced","cumFailed","recycled","operational","cumInstalled"),names_to="State",values_to="GW")
+        pivot_longer(cols=dcols,names_to="State",values_to="GW")
       
       rccagr<-input$pvRecyclingCAGR
       rc22<-input$pvRecycling22
       df3<-df2 %>% select(Year,State,GW) %>% pivot_wider(names_from=State,values_from=GW)
       # write_csv(df3,paste0("solarpv-statetable",rccagr,"pc-",rc22,"GW.csv"))
+      write_csv(df2,"df2.csv")
       df2
     })
     output$notes <- renderUI({
       df<-genWasteData()
-      op2050<-df %>% filter(State=="operational") %>% summarise(mx=max(GW))
-      waste2050<-df %>% filter(State=="cumFailed") %>% summarise(mx=max(GW))
+      op2050<-df %>% filter(State=="operational") %>% summarise(mx=last(GW))
+      waste2050<-df %>% filter(State=="cumFailed") %>% summarise(mx=last(GW))
+      
       msg<- if (op2050>18749) "" else "**Note: your settings have resulted in an operational level of PV below the IEA Net Zero by 2050 plan (18,750 GW)**" 
       markdown(paste0(
         "Operational PV panels in 2050: **",comma(op2050),"** GW\n\n",
         "Accumulated PV panel waste by 2050: **",comma(waste2050*1000*input$pvTonnagePerGW/1e6),"** million tonnes\n",
         "## Failure model\n",
         msg,"\n\n",
-        "Change the slider to see the impact of different assumptions. The class of models is widely used in product reliability models.\n"
+        "Change the \"PV failure parameter\" slider to see the impact of different assumptions. The class of models is widely used in product reliability models.\n"
         ))
     })
     output$failPlot <- renderPlot({
@@ -223,7 +229,7 @@ Reference (k=1) compared with selected"))
     })
     output$distPlot <- renderPlot({
       df<-genWasteData()
-      mx<-df %>% filter(State=="operational") %>% summarise(mx=max(GW))
+      mx<-df %>% filter(State=="operational") %>% summarise(mx=last(GW))
       print(mx)
       y1<-ymd(as.character(input$pvStartYear))
       print(y1)

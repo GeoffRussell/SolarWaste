@@ -1,0 +1,55 @@
+---
+title: "getCountryGWPv"
+author: "GeoffRussell"
+date: "2023-11-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readxl)
+```
+
+## Data 
+
+```{r}
+dfc <- read_xlsx("Statistical_Review_of_World_Energy_2023.xlsx",sheet="Solar Capacity",skip=2) 
+lookup<-c(
+  'Megawatts'='...1',
+  '2000'='...6',
+  '2001'='...7',
+  '2002'='...8',
+  '2003'='...9',
+  '2004'='...10',
+  '2005'='...11',
+  '2006'='...12',
+  '2007'='...13',
+  '2008'='...14',
+  '2009'='...15',
+  '2010'='...16',
+  '2011'='...17',
+  '2012'='...18',
+  '2013'='...19',
+  '2014'='...20',
+  '2015'='...21',
+  '2016'='...22',
+  '2017'='...23',
+  '2018'='...24',
+  '2019'='...25',
+  '2020'='...26',
+  '2021'='...27',
+  '2022'='...28'
+  )
+dfcr<-dfc %>% rename(all_of(lookup))
+getCountry<-function(c) {
+  dfcr %>% filter(`Megawatts` %in% c) %>% mutate("Country"=`Megawatts`)  
+}
+
+dfcountries<-getCountry(c("Total World","US","Australia","Germany","UK","Total Europe")) %>% select(Country,`2005`:`2022`) %>%
+  pivot_longer(cols=`2005`:`2022`,names_to="Year",values_to="MW") %>%
+  mutate(GW=`MW`/1000)
+
+write_csv(dfcountries,"GWByCountry.csv")
+
+```
