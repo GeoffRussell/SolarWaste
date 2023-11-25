@@ -147,14 +147,19 @@ server <- function(input, output) {
       print(df,n=60)
       write_csv(df,"production.csv")
       
+      ftab<-data.frame(matrix(0,nrow=nyears,ncol=nyears))
+      ftab[,1]=df$produced
       for(i in 1:nyears) {
         if (i<nyears) {
           for(n in (i+1):nyears) {
-            bFailed[n]<-bFailed[n]+failFun(n,df$produced[i])
+            nf<-failFun(n-i,df$produced[i])
+            bFailed[n]<-bFailed[n]+nf
+            ftab[i,n]=nf
             # cat(paste0("i,n,produced[i],failed[n]:",i,",",n,",P=",df$produced[i],",F=",bFailed[n],"\n"))
           }
         }
       }
+      write_csv(ftab,"failuretable.csv")
       df$failed=bFailed
       # done
       #----------------------------------------------------------------------------------
