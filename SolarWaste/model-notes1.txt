@@ -16,12 +16,14 @@ projects. So my guess at 10 GW per year would amount to about 30 million panels 
 
 The initial setting of 70,000 tonnes of mined materials per GW or 
 PV panels is based on reading a stack of specification sheets. Panels used in solar farms are typically heavier than
-those used on rooftops.
+those used on rooftops. Over time, weight of panels has declined per MW. Has this been at the expense of durability? Given that solar farms use heavier panels, the answer would appear to be yes.  
 
-No account is made of the aluminium, steel and possibly concrete
-used for mounting panels, either on rooftops or in utility scale farms. The weight of mounting materials often exceeds that of
-the panels themselves. For utility scale farms, the soil and weather will determine if concrete footings are 
-required; the tendency seems, for obvious reasons, to try and avoid that expense.
+No account is made of the aluminium, steel and possibly concrete used for
+mounting panels, either on rooftops or in utility scale farms. The weight
+of mounting materials often exceeds that of the panels themselves. For
+utility scale farms, the soil and weather will determine if concrete
+footings are required; the tendency seems, for obvious reasons, to try
+and avoid that expense.
 
 ### Guide to the graph 
 

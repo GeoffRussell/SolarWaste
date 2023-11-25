@@ -84,7 +84,7 @@ ui <- fluidPage(
         # Sidebar with a sliders
         #-----------------------------------------------------------------------------------
         sidebarPanel(
-            sliderInput("pvGrowthRate1","Growth rate to 2030 (%)",min = 1, max = 30, value = 23),
+            sliderInput("pvGrowthRate1","Growth rate to 2030 (%)",min = 1, max = 30, value = 11),
             sliderInput("pvGrowthRate2","Growth rate 2030 to 2050 (%)",min = 1, max = 30, value = 11),
             sliderInput("pvTonnagePerGW","Panel tonnage per GW ('000 tonnes)",min = 30, max = 150, value = 70),
             sliderInput("pvLifeSpan","Average lifespan (years))",min = 15, max = 50, value = 30),
@@ -95,7 +95,7 @@ ui <- fluidPage(
                            value=ymd("2010-01-01"),
                            min=ymd("2010-01-01"),max=ymd("2050-01-01"),
                            format="yyyy-mm-dd"),
-            markdown("Geoff Russell, Alpha Testing, V0.4 November 2023")
+            markdown("Geoff Russell, Beta Testing, V0.5 November 2023")
         ),
 
         #-----------------------------------------------------------------------------------
@@ -109,7 +109,6 @@ ui <- fluidPage(
            markdown("## Material required"),
            plotOutput("tonnagePlot"),
            markdownFile("model-notes.txt"),
-           imageOutput("irenaimage",height=400),
            markdownFile("model-notes1.txt")
         )
     )
