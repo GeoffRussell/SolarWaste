@@ -32,15 +32,27 @@ df<-tribble(
 
 
 ```{r}
+makeWeibullFail<-function(mtbf,k) {
+  lambda<-1/mtbf
+  function(n,p) {
+    (1-exp(-(lambda*(n-1))^k))*p
+  }
+}
 makeFail<-function(mtbf) {
   lambda<-1/mtbf
   function(n,p) {
     (1-exp(-lambda*(n-1)))*p
   }
 }
+#----------------------------------------------------------------------------------
+# we make two functions, the normal exponential failure and the weibull failure
+# with a parameter of 5.  
+#----------------------------------------------------------------------------------
 failFun<-makeFail(5)
+failWeibullFun<-makeWeibullFail(5,5)
 nyears<-length(df$panels)
 failed<-rep(0,nyears)
+wfailed<-rep(0,nyears)
 print(nyears)
 df <- df %>% mutate(produced=panels-lag(panels))
 df$produced[1]=df$panels[1]
@@ -48,9 +60,53 @@ for(i in 1:nyears) {
     if (i<nyears) {
       for(n in (i+1):nyears) {
         failed[n]<-failed[n]+failFun(n,df$produced[i])
-        cat(paste0("i,n,panels[i],failed[n]:",i,",",n,",P=",df$produced[i],",F=",failed[n],"\n"))
+        wfailed[n]<-wfailed[n]+failWeibullFun(n,df$produced[i])
+        cat(paste0("i,n,panels[i],failed[n]:",i,",",n,",P=",df$produced[i],",F=",failed[n],",WF=",wfailed[n],"\n"))
       }
     }
 }
-print(failed)
+```
+
+** Let's plot the failure function
+
+```{r}
+nyears<-100
+failFun<-makeFail(40)
+failWeibull5Fun<-makeWeibullFail(40,5)
+failWeibull3Fun<-makeWeibullFail(40,3)
+failed<-rep(0,nyears)
+w5failed<-rep(0,nyears)
+w3failed<-rep(0,nyears)
+df<-tibble(
+  panels=c(100,rep(0,nyears-1)),
+  produced=c(100,rep(0,nyears-1))
+)
+for(i in 1:nyears) {
+    if (i<nyears) {
+      for(n in (i+1):nyears) {
+        failed[n]<-failed[n]+failFun(n,df$produced[i])
+        w5failed[n]<-w5failed[n]+failWeibull5Fun(n,df$produced[i])
+        w3failed[n]<-w3failed[n]+failWeibull3Fun(n,df$produced[i])
+        #cat(paste0("i,n,panels[i],failed[n]:",i,",",n,",P=",df$produced[i],",F=",failed[n],",WF=",wfailed[n],"\n"))
+      }
+    }
+}
+dfout<-tibble(
+  expfail=failed,
+  w5fail=w5failed,
+  w3fail=w3failed,
+  x=seq(1,100)
+)
+dfout %>% ggplot()+
+  geom_line(aes(x=x,y=expfail),color="blue") +
+  geom_line(aes(x=x,y=w3fail),color="red")+
+  geom_line(aes(x=x,y=w5fail),color="orange")+
+  annotate('text',x=24,y=50,label="k=1",color="blue")+
+  annotate('text',x=22,y=25,label="k=3",color="red")+
+  annotate('text',x=32,y=12,label="k=5",color="orange")+
+  labs(x="Years",y="Percentage Failed",title="Various failure models with average panel life of 40 years,
+Exponential (k=1),Weibull quality (k=3),Weibull best quality (k=5)")
+
+
+
 ```
