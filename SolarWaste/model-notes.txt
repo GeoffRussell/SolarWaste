@@ -1,0 +1,41 @@
+
+## Model assumptions 
+
+The graph above, with its initial slider settings, 
+models the global rollout of solar PV panels according to the IEA Net Zero by 2050.
+This IEA plan proposes some 18,750 GW of solar PV ([as updated in 2023](https://iea.blob.core.windows.net/assets/9a698da4-4002-4e53-8ef3-631d8971bf84/NetZeroRoadmap_AGlobalPathwaytoKeepthe1.5CGoalinReach-2023Update.pdf)).
+As you can see, the model illustrated in the graph above, yields an operational level of 17,440 GW by 2050. The 
+small difference may be down to some minor variations in the PV panel failure model I've used, or the
+initial conditions; the number of GW of solar rolled out between 2012 and 2022. 
+I use the World Energy Statistics data for historical PV capacity; which may not be what the 
+IEA use.
+
+The initial settings mirror the assumptions in the IEA netzero by 2050 plan
+and envisage compound annual growth rates (CAGR) of 23% out to 2030 and 11% between 2030 and
+2050. These two numbers determine the growth in panel production. 
+
+The IEA don't discuss PV module failure in the NZ2050 report, unless I missed it. But one is implied by
+their numbers. Those CAGRs without any panel failure would result in a much bigger 
+installed gigawatt (GW) base by 2050.
+
+**PV panel failure**
+
+The failure model merely takes panels out of the installed base according to a fairly standard industrial
+model based on the mean time to failure of panels (ie. average panel lifespan).
+
+The initial value of this lifespan parameter is 30 years. 
+
+The timing of panel failure is determined by the PV panel failure slider. The IRENA [2016 report](https://www.irena.org/publications/2016/Jun/End-of-life-management-Solar-Photovoltaic-Panels) 
+on PV end-of-life management considered two scenarios, *Early loss* (corresponding to value 2.4 on the slider) and
+*Regular loss* (corresponding to 5.4 on the slider). These numbers change the timing of waste generation, but not the
+long term amount; all panels end up as waste. The early loss scenario corresponds to many panels failing quickly with the rate
+of failure than slowing substantially. Our initial value of 1 sees many panels fail quickly but the rate then slows substantially
+with many panels having a long life. 
+
+The IRENA report looks to be simply wrong in its estimate of waste. Without access to the program code, this is hard to
+prove, but there is evidnce in the program itself. The following chart compares the IRENA waste estimates for Japan with that 
+of a Japanese report. The Japanese waste estimates have the familiar exponential shape you'd expect to see as failures
+rise quickly in an aging and growing panel population. The IRENA figures look linear ... which makes no sense
+at all. The [program code for my model](https://github.com/GeoffRussell/SolarWaste) is available on GitHub. Feel free to download
+and test it. If you find a mistake, then by all means let me know and I'll fix it.
+

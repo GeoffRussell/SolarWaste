@@ -1,0 +1,37 @@
+
+
+**PV recycling**
+
+Recycling is modelled by magic whereby failed panels are simply added back to the
+operational base until the recycling capacity for the year is reached. We allow the recycling capacity and its growth
+rate to be changed; like all the other model parameters.
+
+A more realistic model would dial back the production growth rate as the recycling rate increased. This would keep
+the installed base tracking the IEA planning target.
+
+I don't really have any idea how much PV recycling is being done at present. I see media report of small or very small
+projects. So my guess at 10 GW per year would amount to about 30 million panels a year. 
+
+**Panel weight and waste**
+
+The initial setting of 70,000 tonnes of mined materials per GW or 
+PV panels is based on reading a stack of specification sheets. Panels used in solar farms are typically heavier than
+those used on rooftops.
+
+No account is made of the aluminium, steel and possibly concrete
+used for mounting panels, either on rooftops or in utility scale farms. The weight of mounting materials often exceeds that of
+the panels themselves. For utility scale farms, the soil and weather will determine if concrete footings are 
+required; the tendency seems, for obvious reasons, to try and avoid that expense.
+
+### Guide to the graph 
+
+All the bars on the chart are in gigawatts (GW). The calculated tonnage of waste below the graph is just estimated
+by multiplying the GW by the tonnage per factor figure in the slider.
+
+The bars are as follows:
+
+1. cumFailed ... these are panels which have failed but haven't been recycled because of a lack of capacity 
+1. cumInstalled ... total GW included failed panels  
+1. operational ... cuminstalled - cumfailed + recycled
+1. produced ... new production from freshly mined materials 
+1. recycled ... production from recycled material; assumed to be perfect 
