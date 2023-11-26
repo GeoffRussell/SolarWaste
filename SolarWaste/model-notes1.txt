@@ -1,6 +1,6 @@
 
 
-**PV recycling**
+## PV recycling in the model
 
 Recycling is modelled by magic whereby failed panels are simply added back to the
 operational base until the recycling capacity for the year is reached. We allow the recycling capacity and its growth
@@ -12,18 +12,39 @@ the installed base tracking the IEA planning target.
 I don't really have any idea how much PV recycling is being done at present. I see media report of small or very small
 projects. So my guess at 10 GW per year would amount to about 30 million panels a year. 
 
-**Panel weight and waste**
+## Flaws and conservative underestimates 
 
 The initial setting of 70,000 tonnes of mined materials per GW or 
 PV panels is based on reading a stack of specification sheets. Panels used in solar farms are typically heavier than
 those used on rooftops. Over time, weight of panels has declined per MW. Has this been at the expense of durability? Given that solar farms use heavier panels, the answer would appear to be yes.  
 
 No account is made of the aluminium, steel and possibly concrete used for
-mounting panels, either on rooftops or in utility scale farms. The weight
-of mounting materials often exceeds that of the panels themselves. For
-utility scale farms, the soil and weather will determine if concrete
+mounting panels, either on rooftops or in utility scale farms.  **The weight of mounting 
+materials often exceeds that of the panels themselves.** 
+
+For utility scale farms, the soil and weather will determine if concrete
 footings are required; the tendency seems, for obvious reasons, to try
-and avoid that expense.
+and avoid that expense. Is mounting material to be considered as waste? I'd say anything
+left in a field or which you have to collect for dumping or recycling is waste; until it is actually recycled.
+
+A 2019 [study](https://www.mdpi.com/1996-1073/12/7/1213) showed that PV panel reliability isn't the weak
+link in PV systems. There are many parts of a solar system that can fail. This study found that the average 
+time to failure of panels was over 40 years, but the time to failure of inverters was just 8.3 years. Put a 
+collection of unreliable elements together and the average time to failure of the system as a whole declines
+still further. What happens when a PV system fails? There are three basic possibilities:
+
+1. Nothing 
+1. Repair 
+1. Upgrade 
+1. Replace 
+
+If the owner does nothing, then the system is part of the waste stream, but may simply be left doing
+nothing on a roof or in a field. It may be that the company that sold it has disappeared and new companies may
+recommend replacement because they don't want to repair old systems where the supply of parts is complex or
+impossible. Perhaps a salesperson will suspect they can persuade the owner into an upgrade to a new
+more efficient system. 
+
+In many cases, early system failure and marketing activities will make a mockery of failure models.
 
 ### Guide to the graph 
 
