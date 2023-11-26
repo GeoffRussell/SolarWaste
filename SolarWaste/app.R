@@ -9,6 +9,7 @@
 
 library(shiny)
 library(tidyverse)
+library(modelr)
 library(markdown)
 comma<-function(x) prettyNum(signif(x,digits=4),big.mark=",")
 markdownFile<-function(filename) {
@@ -85,8 +86,8 @@ ui <- fluidPage(
         sidebarPanel(
             selectInput("region","Country or Region",countries,selected="World"),
             checkboxInput("predict", label = "Add a prediction based on 2005-22", value = FALSE),
-            sliderInput("pvGrowthRate1","Growth rate to 2030 (%)",min = 1, max = 30, value = 11),
-            sliderInput("pvGrowthRate2","Growth rate 2030 to 2050 (%)",min = 1, max = 30, value = 11),
+            sliderInput("pvGrowthRate1","Growth rate to 2030 (%)",min = 1, max = 30, value = 20),
+            sliderInput("pvGrowthRate2","Growth rate 2030 to 2050 (%)",min = 1, max = 30, value = 9),
             sliderInput("pvTonnagePerGW","Panel tonnage per GW ('000 tonnes)",min = 30, max = 150, value = 70),
             sliderInput("pvLifeSpan","Average lifespan (years))",min = 10, max = 50, value = 30),
             sliderInput("pvFailParm","PV failure parameter (see notes)",min = 1.0, max = 15.0, step=0.1,value = 1),
