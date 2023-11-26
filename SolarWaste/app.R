@@ -18,15 +18,21 @@ markdownFile<-function(filename) {
 
 # This global solar capacity factor was chosen so that the TWh for 2021 in the World Energy Stats (ex-BP) matches
 # the GW in the IEA Net Zero plan
-solarCF<-0.13
+# solarCF<-0.13
 # Data
 # https://iea.blob.core.windows.net/assets/9a698da4-4002-4e53-8ef3-631d8971bf84/NetZeroRoadmap_AGlobalPathwaytoKeepthe1.5CGoalinReach-2023Update.pdf
 # Now we get the World Energy Stats TWh from the 2023 edition and use the capacity factor (solarCF) to estimate
 # the installed GW for that year
-solarTWh<-read_csv("solartwh.csv") 
-solarGW<-solarTWh %>% mutate(Year=ymd(paste0(Year,"-01-01")),cumGWinstalled=TWh*1e12/(solarCF*24*365)/1e9) %>%
-  select(cumGWinstalled,Year)
-print(solarGW)
+#-----------------------------------------------------------------------------------------------
+# Read file of GW by country from 2005 to 2022
+#-----------------------------------------------------------------------------------------------
+dfgw<-read_csv("../GWByCountry.csv") %>% mutate(Country=str_replace(Country,"Total ",""))
+countries<-dfgw$Country %>% unique
+#------------------------------------------------------------------------------------------------
+#solarTWh<-read_csv("solartwh.csv") 
+#solarGW<-solarTWh %>% mutate(Year=ymd(paste0(Year,"-01-01")),cumGWinstalled=TWh*1e12/(solarCF*24*365)/1e9) %>%
+#  select(cumGWinstalled,Year)
+#print(solarGW)
 firstYear<-2012
 lastYear<-2050
 thisYear<-2022
@@ -84,6 +90,7 @@ ui <- fluidPage(
         # Sidebar with a sliders
         #-----------------------------------------------------------------------------------
         sidebarPanel(
+            selectInput("region","Country or Region",countries,selected="World"),
             sliderInput("pvGrowthRate1","Growth rate to 2030 (%)",min = 1, max = 30, value = 11),
             sliderInput("pvGrowthRate2","Growth rate 2030 to 2050 (%)",min = 1, max = 30, value = 11),
             sliderInput("pvTonnagePerGW","Panel tonnage per GW ('000 tonnes)",min = 30, max = 150, value = 70),
@@ -119,8 +126,19 @@ ui <- fluidPage(
 #---------------------------------------------------------------------------------
 server <- function(input, output) {
     genWasteData<-reactive({
+      print(input$region)
+      regionGW<-dfgw %>% filter(Country==input$region & Year>="2012") %>% mutate(Year=ymd(paste0(Year,"01-01")),cumGWinstalled=GW) %>% select(cumGWinstalled,Year)
+      print(regionGW)
+      pvGWThisYear<-regionGW %>% summarise(mx=last(cumGWinstalled))
+      
+      print(pvGWThisYear)
+      print("----------")
+      
+      #print(solarGW)
+      
+      
       recycleFun<-makeRecycle(input$pvRecyclingCAGR,input$pvRecycling22)
-      pvProdto2030<-makeExpProduction(input$pvGrowthRate1,pvGWThisYear,8)
+      pvProdto2030<-makeExpProduction(input$pvGrowthRate1,as.numeric(pvGWThisYear),8)
       df1<-tibble(
         cumGWinstalled=(1:8 %>% map_dbl(pvProdto2030)),
         Year=seq(ymd('2023-01-01'),ymd('2030-01-01'),by='1 year')
@@ -130,7 +148,8 @@ server <- function(input, output) {
         cumGWinstalled=(1:20 %>% map_dbl(pvProdto2050)),
         Year=seq(ymd('2031-01-01'),ymd('2050-01-01'),by='1 year')
       )
-      df<-bind_rows(solarGW,df1,df2)
+      #df<-bind_rows(solarGW,df1,df2)
+      df<-bind_rows(regionGW,df1,df2)
       
       #-----------------------------------------------------------------------------
       # Calculating the failed panels over time 

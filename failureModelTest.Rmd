@@ -107,7 +107,9 @@ dfout %>% ggplot()+
   annotate('text',x=32,y=12,label="k=5.3",color="orange")+
   labs(x="Years",y="Percentage Failed",title="Various failure models with average panel life of 40 years,
 Exponential (k=1),Weibull quality (k=3),Weibull best quality (k=5)")
+```
 
-
-
+```{r}
+dfgw<-read_csv("GWByCountry.csv") %>% mutate(Country=str_replace(Country,"Total ",""))
+countries<-dfgw$Country %>% unique
 ```
