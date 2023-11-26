@@ -109,7 +109,22 @@ dfout %>% ggplot()+
 Exponential (k=1),Weibull quality (k=3),Weibull best quality (k=5)")
 ```
 
+Add some testing code to predict future growth
+
 ```{r}
+library(modelr)
 dfgw<-read_csv("GWByCountry.csv") %>% mutate(Country=str_replace(Country,"Total ",""))
 countries<-dfgw$Country %>% unique
+regionGW<-dfgw %>% filter(Country=="Australia") %>% 
+  mutate(cumGWinstalled=GW) %>% select(cumGWinstalled,Year) 
+model<-lm(cumGWinstalled~poly(as.numeric(Year),2),regionGW)
+modelGW<-bind_rows(tibble(Year=seq(2023,2050),cumGWinstalled=rep(0,2050-2023+1)),regionGW)
+growthPrediction<-modelGW %>% add_predictions(model,var="Predicted") %>% arrange(Year)
+
+growthPrediction %>% ggplot() + 
+  geom_col(aes(x=Year,y=cumGWinstalled),fill="blue") + 
+  geom_line(aes(x=Year,y=Predicted),color="red")
+
+
+
 ```
