@@ -87,7 +87,7 @@ ui <- fluidPage(
             sliderInput("pvGrowthRate1","Growth rate to 2030 (%)",min = 1, max = 30, value = 11),
             sliderInput("pvGrowthRate2","Growth rate 2030 to 2050 (%)",min = 1, max = 30, value = 11),
             sliderInput("pvTonnagePerGW","Panel tonnage per GW ('000 tonnes)",min = 30, max = 150, value = 70),
-            sliderInput("pvLifeSpan","Average lifespan (years))",min = 15, max = 50, value = 30),
+            sliderInput("pvLifeSpan","Average lifespan (years))",min = 10, max = 50, value = 30),
             sliderInput("pvFailParm","PV failure parameter (see notes)",min = 1.0, max = 15.0, step=0.1,value = 1),
             sliderInput("pvRecycling22","Recycling Capacity 2022 (GW)",min = 10, max = 50, value = 10),
             sliderInput("pvRecyclingCAGR","Recycling CAGR (%)",min = 5, max = 20, value = 5),
@@ -182,14 +182,16 @@ server <- function(input, output) {
     output$notes <- renderUI({
       df<-genWasteData()
       op2050<-df %>% filter(State=="operational") %>% summarise(mx=last(GW))
+      cumInstalled<-df %>% filter(State=="cumInstalled") %>% summarise(mx=last(GW))
       waste2050<-df %>% filter(State=="cumFailed") %>% summarise(mx=last(GW))
       
       msg<- if (op2050>18749) "" else "**Note: your settings have resulted in an operational level of PV below the IEA Net Zero by 2050 plan (18,750 GW)**" 
       markdown(paste0(
         "Operational PV panels in 2050: **",comma(op2050),"** GW\n\n",
-        "Accumulated PV panel waste by 2050: **",comma(waste2050*1000*input$pvTonnagePerGW/1e6),"** million tonnes\n",
-        "## Failure model\n",
+        "Accumulated PV panel waste by 2050: **",comma(waste2050*1000*input$pvTonnagePerGW/1e6),"** million tonnes\n\n",
+        "Total PV tonnage deployed by 2050: **",comma(cumInstalled*1000*input$pvTonnagePerGW/1e6),"** million tonnes\n\n",
         msg,"\n\n",
+        "## Failure model\n\n",
         "Change the \"PV failure parameter\" slider to see the impact of different assumptions. The class of models is widely used in product reliability models.\n"
         ))
     })
@@ -239,7 +241,7 @@ Reference (k=1) compared with selected"))
       print(y1)
       df %>% ggplot(aes(x=Year,y=GW,fill=State))+
         geom_col(position="dodge")+labs(y="Gigawatts") + xlim(y1,ymd("2050-10-10")) +
-        annotate('text',x=ymd("2030-01-01"),y=40000,vjust=0,label=paste0("Operational PV in 2050: ",comma(mx),"GW"),size=5)
+        annotate('text',x=ymd("2030-01-01"),y=as.numeric(mx),vjust=0,label=paste0("Operational PV in 2050: ",comma(mx),"GW"),size=5)
     })
     output$tonnagePlot <- renderPlot({
       df<-genWasteData()
