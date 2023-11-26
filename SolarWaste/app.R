@@ -84,6 +84,7 @@ ui <- fluidPage(
         #-----------------------------------------------------------------------------------
         sidebarPanel(
             selectInput("region","Country or Region",countries,selected="World"),
+            checkboxInput("predict", label = "Add a prediction based on 2005-22", value = FALSE),
             sliderInput("pvGrowthRate1","Growth rate to 2030 (%)",min = 1, max = 30, value = 11),
             sliderInput("pvGrowthRate2","Growth rate 2030 to 2050 (%)",min = 1, max = 30, value = 11),
             sliderInput("pvTonnagePerGW","Panel tonnage per GW ('000 tonnes)",min = 30, max = 150, value = 70),
@@ -244,13 +245,24 @@ Reference (k=1) compared with selected"))
     })
     output$distPlot <- renderPlot({
       df<-genWasteData()
+      dfw<-df %>% pivot_wider(names_from=`State`,values_from=`GW`) 
+      model<-lm(cumGWinstalled~poly(as.numeric(Year),2),dfw[1:17,])
+      df<-df %>% add_predictions(model,var="Predicted") 
+      write_csv(df,"distdf.csv")
+      
       mx<-df %>% filter(State=="operational") %>% summarise(mx=last(GW))
       print(mx)
       y1<-ymd(as.character(input$pvStartYear))
       print(y1)
-      df %>% ggplot(aes(x=Year,y=GW,fill=State))+
+      p<-df %>% ggplot(aes(x=Year,y=GW,fill=State))+
         geom_col(position="dodge")+labs(y="Gigawatts") + xlim(y1,ymd("2050-10-10")) +
         annotate('text',x=ymd("2030-01-01"),y=as.numeric(mx),vjust=0,label=paste0("Operational PV in 2050: ",comma(mx),"GW"),size=5)
+      if (input$predict) {
+         p+geom_line(aes(x=Year,y=Predicted),color="red")
+      }
+      else {
+         p
+      }
     })
     output$tonnagePlot <- renderPlot({
       df<-genWasteData()
