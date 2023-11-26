@@ -154,7 +154,7 @@ server <- function(input, output) {
       df <- df %>% mutate(produced=cumGWinstalled-lag(cumGWinstalled))
       df$produced[1]=df$cumGWinstalled[1]
       print(df,n=60)
-      write_csv(df,"production.csv")
+      # write_csv(df,"production.csv")
       
       ftab<-data.frame(matrix(0,nrow=nyears,ncol=nyears))
       ftab[,1]=df$produced
@@ -168,7 +168,7 @@ server <- function(input, output) {
           }
         }
       }
-      write_csv(ftab,"failuretable.csv")
+      # write_csv(ftab,"failuretable.csv")
       df$failed=bFailed
       # done
       #----------------------------------------------------------------------------------
@@ -186,7 +186,7 @@ server <- function(input, output) {
       rc22<-input$pvRecycling22
       df3<-df2 %>% select(Year,State,GW) %>% pivot_wider(names_from=State,values_from=GW)
       # write_csv(df3,paste0("solarpv-statetable",rccagr,"pc-",rc22,"GW.csv"))
-      write_csv(df2,"df2.csv")
+      # write_csv(df2,"df2.csv")
       df2
     })
     output$notes <- renderUI({
@@ -248,7 +248,7 @@ Reference (k=1) compared with selected"))
       dfw<-df %>% pivot_wider(names_from=`State`,values_from=`GW`) 
       model<-lm(cumGWinstalled~poly(as.numeric(Year),2),dfw[1:17,])
       df<-df %>% add_predictions(model,var="Predicted") 
-      write_csv(df,"distdf.csv")
+      # write_csv(df,"distdf.csv")
       
       mx<-df %>% filter(State=="operational") %>% summarise(mx=last(GW))
       print(mx)
