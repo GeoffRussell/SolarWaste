@@ -93,6 +93,8 @@ ui <- fluidPage(
             sliderInput("pvFailParm","PV failure parameter (see notes)",min = 1.0, max = 15.0, step=0.1,value = 1),
             sliderInput("pvRecycling22","Recycling Capacity 2022 (GW)",min = 10, max = 50, value = 10),
             sliderInput("pvRecyclingCAGR","Recycling CAGR (%)",min = 5, max = 20, value = 5),
+            sliderInput("pvUtilityRatio","Percentage of utility PV (%)",min = 10, max = 100, value = 60),
+            sliderInput("pvHaPerMW","Hectares per MW",min = 1, max = 3, value = 2.5,step=0.1),
             dateInput("pvStartYear","Pick start date",
                            value=ymd("2005-01-01"),
                            min=ymd("2005-01-01"),max=ymd("2050-01-01"),
@@ -196,11 +198,16 @@ server <- function(input, output) {
       cumInstalled<-df %>% filter(State=="cumInstalled") %>% summarise(mx=last(GW))
       waste2050<-df %>% filter(State=="cumFailed") %>% summarise(mx=last(GW))
       
-      msg<- if (op2050>18749) "" else "**Note: your settings have resulted in an operational level of PV below the IEA Net Zero by 2050 plan (18,750 GW)**" 
+      msg<-""
+      if (input$region=="World" && op2050<18749) {
+        msg<-"**Note: your settings have resulted in an operational level of PV below the IEA Net Zero by 2050 plan (18,750 GW)**" 
+      }
+      hectares<-op2050*1000*(input$pvHaPerMW*(input$pvUtilityRatio/100))
       markdown(paste0(
         "Operational PV panels in 2050: **",comma(op2050),"** GW\n\n",
         "Accumulated PV panel waste by 2050: **",comma(waste2050*1000*input$pvTonnagePerGW/1e6),"** million tonnes\n\n",
         "Total PV tonnage deployed by 2050: **",comma(cumInstalled*1000*input$pvTonnagePerGW/1e6),"** million tonnes\n\n",
+        "Total Utility scale land use: **",comma(hectares),"** hectares (based on operational GW)\n\n",
         msg,"\n\n",
         "## Failure model\n\n",
         "Change the \"PV failure parameter\" slider to see the impact of different assumptions. The class of models is widely used in product reliability models.\n"
