@@ -24,7 +24,7 @@ markdownFile<-function(filename) {
 #-----------------------------------------------------------------------------------------------
 # Read file of GW by country from 2005 to 2022 from WES
 #-----------------------------------------------------------------------------------------------
-dfgw<-read_csv("../GWByCountry.csv") %>% mutate(Country=str_replace(Country,"Total ",""))
+dfgw<-read_csv("GWByCountry.csv") %>% mutate(Country=str_replace(Country,"Total ",""))
 countries<-dfgw$Country %>% unique
 #------------------------------------------------------------------------------------------------
 firstYear<-2005
