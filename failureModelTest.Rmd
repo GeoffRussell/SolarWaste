@@ -125,6 +125,15 @@ growthPrediction %>% ggplot() +
   geom_col(aes(x=Year,y=cumGWinstalled),fill="blue") + 
   geom_line(aes(x=Year,y=Predicted),color="red")
 
+df2<-read_csv("SolarWaste/df2.csv") %>% pivot_wider(names_from=`State`,values_from=`GW`) 
+model<-lm(cumGWinstalled~poly(as.numeric(Year),2),df2[1:18,])
+df2<-read_csv("SolarWaste/df2.csv")
+df3 <- df2 %>% add_predictions(model,var="Predicted") 
+write_csv(df3,"df3.csv")
+df3 %>% ggplot() + 
+  geom_col(aes(x=Year,y=cumGWinstalled),fill="blue") + 
+  geom_line(aes(x=Year,y=Predicted),color="red")
+
 
 
 ```
