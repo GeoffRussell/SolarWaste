@@ -127,14 +127,13 @@ ui <- fluidPage(
 #---------------------------------------------------------------------------------
 server <- function(input, output) {
     genWasteData<-reactive({
-      print(input$region)
+      #print(input$region)
       #regionGW<-dfgw %>% filter(Country==input$region & Year>="2012") %>% mutate(Year=ymd(paste0(Year,"01-01")),cumGWinstalled=GW) %>% select(cumGWinstalled,Year)
       regionGW<-dfgw %>% filter(Country==input$region) %>% mutate(Year=ymd(paste0(Year,"01-01")),cumGWinstalled=GW) %>% select(cumGWinstalled,Year)
-      print(regionGW)
+      #print(regionGW)
       pvGWThisYear<-regionGW %>% summarise(mx=last(cumGWinstalled))
       
-      print(pvGWThisYear)
-      print("----------")
+      #print(pvGWThisYear)
       
       recycleFun<-makeRecycle(input$pvRecyclingCAGR,input$pvRecycling22)
       pvProdto2030<-makeExpProduction(input$pvGrowthRate1,as.numeric(pvGWThisYear),8)
@@ -182,7 +181,7 @@ server <- function(input, output) {
       # the rest is easy, recycling just returns failed stuff to the operational state 
       #----------------------------------------------------------------------------------
       df$recycled<-map2_dbl(bFailed,1:nyears,recycleFun)
-      write_csv(df %>% mutate(cumfailed=failed,cumrecycled=recycled) %>% select(produced,cumGWinstalled,cumfailed,cumrecycled),"recycled.csv")
+      # write_csv(df %>% mutate(cumfailed=failed,cumrecycled=recycled) %>% select(produced,cumGWinstalled,cumfailed,cumrecycled),"recycled.csv")
       
       df2 <- df %>% mutate(operational=cumGWinstalled-failed+recycled,cumFailed=failed-recycled,cumInstalled=cumGWinstalled) %>%
         
@@ -192,7 +191,7 @@ server <- function(input, output) {
       rc22<-input$pvRecycling22
       df3<-df2 %>% select(Year,State,GW) %>% pivot_wider(names_from=State,values_from=GW)
       # write_csv(df3,paste0("solarpv-statetable",rccagr,"pc-",rc22,"GW.csv"))
-      #write_csv(df3,"df3.csv")
+      # write_csv(df3,"df3.csv")
       df2
     })
     output$topnotes <- renderUI({
@@ -208,6 +207,7 @@ server <- function(input, output) {
       op2050<-df %>% filter(State=="operational") %>% summarise(mx=last(GW))
       cumInstalled<-df %>% filter(State=="cumInstalled") %>% summarise(mx=last(GW))
       waste2050<-df %>% filter(State=="cumFailed") %>% summarise(mx=last(GW))
+      rec2050<-df %>% filter(State=="recycled") %>% summarise(mx=last(GW))
       dfw<-df %>% filter(State=="cumFailed")
       # print(dfw,n=100)
       
@@ -216,11 +216,20 @@ server <- function(input, output) {
         msg<-"**Note: your settings have resulted in an operational level of PV below the IEA Net Zero by 2050 plan (18,750 GW)**" 
       }
       hectares<-op2050*1000*(input$pvHaPerMW*(input$pvUtilityRatio/100))
+      w<-waste2050*input$pvTonnagePerGW*1000
+      wmsg<-""
+      if (w>1e6) {
+        wmsg<-paste0(comma(waste2050*input$pvTonnagePerGW*1000/1e6),"** million tonnes\n\n")
+      }
+      else {
+        wmsg<-paste0(comma(waste2050*input$pvTonnagePerGW*1000),"** tonnes\n\n")
+      }
       markdown(paste0(
         "Operational PV panels in 2050: **",comma(op2050),"** GW\n\n",
-        "Accumulated PV panel waste by 2050: **",comma(waste2050*1000*input$pvTonnagePerGW),"** tonnes\n\n",
-        "Total PV tonnage deployed by 2050: **",comma(cumInstalled*1000*input$pvTonnagePerGW/1e6),"** million tonnes\n\n",
+        "Accumulated PV panel waste by 2050: **",wmsg,
+        "Total PV tonnage deployed by 2050: **",comma(cumInstalled*input$pvTonnagePerGW*1000/1e6),"** million tonnes\n\n",
         "Total Utility scale land use: **",comma(hectares),"** hectares (based on operational GW)\n\n",
+        "Recycled PV panels by 2050: **",comma(rec2050*input$pvTonnagePerGW*1000),"** tonnes\n\n",
         msg,"\n\n",
         "## Failure model\n\n",
         "Change the \"PV failure parameter\" slider to see the impact of different assumptions. The class of models is widely used in product reliability models.\n"
