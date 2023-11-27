@@ -71,13 +71,15 @@ nyears<-lastYear-firstYear+1
 bRecycled<-rep(0,nyears)
 bRecycledGWh<-rep(0,nyears)
 bFailed<-rep(0,nyears)
+dcols<-c("operational","cumInstalled","cumFailed","recycled","produced")
 
 
 # Define UI for application 
 ui <- fluidPage(
 
     # Application title
-    titlePanel("Solar Waste Tonnage over time"),
+    titlePanel("Solar Panel Waste Tonnage over time"),
+    imageOutput("banner",height="200px"),
 
     sidebarLayout(
         #-----------------------------------------------------------------------------------
@@ -86,6 +88,7 @@ ui <- fluidPage(
         sidebarPanel(
             selectInput("region","Country or Region",countries,selected="World"),
             checkboxInput("predict", label = "Add a prediction based on 2005-22", value = FALSE),
+            checkboxGroupInput("stylegraph", label = "Choose your graph bars",choices=dcols,selected=dcols),
             sliderInput("pvGrowthRate1","Growth rate to 2030 (%)",min = 1, max = 30, value = 20),
             sliderInput("pvGrowthRate2","Growth rate 2030 to 2050 (%)",min = 1, max = 30, value = 9),
             sliderInput("pvTonnagePerGW","Panel tonnage per GW ('000 tonnes)",min = 30, max = 150, value = 70),
@@ -106,6 +109,7 @@ ui <- fluidPage(
         # now the main panel has the plots
         #-----------------------------------------------------------------------------------
         mainPanel(
+           uiOutput("topnotes"),
            markdown("## Gigawatts of solar PV panels"),
            plotOutput("distPlot"),
            uiOutput("notes"),
@@ -180,7 +184,6 @@ server <- function(input, output) {
       df$recycled<-map2_dbl(bFailed,1:nyears,recycleFun)
       write_csv(df %>% mutate(cumfailed=failed,cumrecycled=recycled) %>% select(produced,cumGWinstalled,cumfailed,cumrecycled),"recycled.csv")
       
-      dcols=c("operational","cumInstalled","cumFailed","recycled","produced")
       df2 <- df %>% mutate(operational=cumGWinstalled-failed+recycled,cumFailed=failed-recycled,cumInstalled=cumGWinstalled) %>%
         
         pivot_longer(cols=dcols,names_to="State",values_to="GW")
@@ -191,6 +194,12 @@ server <- function(input, output) {
       # write_csv(df3,paste0("solarpv-statetable",rccagr,"pc-",rc22,"GW.csv"))
       # write_csv(df2,"df2.csv")
       df2
+    })
+    output$topnotes <- renderUI({
+      markdown(paste0(
+        "Estimate waste streams and land used under various scenarios; use the sliders to change assumptions.\n", 
+        "Keep in mind that not all assumptions are equal, some are definitely better than others!" 
+      ))
     })
     output$notes <- renderUI({
       df<-genWasteData()
@@ -262,7 +271,7 @@ Reference (k=1) compared with selected"))
       print(mx)
       y1<-ymd(as.character(input$pvStartYear))
       print(y1)
-      p<-df %>% ggplot(aes(x=Year,y=GW,fill=State))+
+      p<-df %>% filter(State %in% input$stylegraph) %>% ggplot(aes(x=Year,y=GW,fill=State))+
         geom_col(position="dodge")+labs(y="Gigawatts") + xlim(y1,ymd("2050-10-10")) +
         annotate('text',x=ymd("2030-01-01"),y=as.numeric(mx),vjust=0,label=paste0("Operational PV in 2050: ",comma(mx),"GW"),size=5)
       if (input$predict) {
@@ -279,6 +288,7 @@ Reference (k=1) compared with selected"))
         geom_col(position="dodge")+labs(y="million tonnes") 
     })
     output$irenaimage<-renderImage(list(src="IRENA-2016-japan.png",height="400px"),deleteFile=FALSE)
+    output$banner<-renderImage(list(src="solar-smashed-virgin-islands-s.jpg",height="200px"),deleteFile=FALSE)
 }
 
 # Run the application 
