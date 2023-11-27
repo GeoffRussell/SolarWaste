@@ -94,7 +94,7 @@ ui <- fluidPage(
             sliderInput("pvTonnagePerGW","Panel tonnage per GW ('000 tonnes)",min = 30, max = 150, value = 70),
             sliderInput("pvLifeSpan","Average lifespan (years))",min = 10, max = 50, value = 30),
             sliderInput("pvFailParm","PV failure parameter (see notes)",min = 1.0, max = 15.0, step=0.1,value = 1),
-            sliderInput("pvRecycling22","Recycling Capacity 2022 (GW)",min = 10, max = 50, value = 10),
+            sliderInput("pvRecycling22","Recycling Capacity 2022 (GW)",min = 0, max = 50, value = 0),
             sliderInput("pvRecyclingCAGR","Recycling CAGR (%)",min = 5, max = 20, value = 5),
             sliderInput("pvUtilityRatio","Percentage of utility PV (%)",min = 10, max = 100, value = 60),
             sliderInput("pvHaPerMW","Hectares per MW",min = 1, max = 3, value = 2.5,step=0.1),
@@ -192,13 +192,15 @@ server <- function(input, output) {
       rc22<-input$pvRecycling22
       df3<-df2 %>% select(Year,State,GW) %>% pivot_wider(names_from=State,values_from=GW)
       # write_csv(df3,paste0("solarpv-statetable",rccagr,"pc-",rc22,"GW.csv"))
-      # write_csv(df2,"df2.csv")
+      write_csv(df3,"df3.csv")
       df2
     })
     output$topnotes <- renderUI({
       markdown(paste0(
+        "\n",
         "Estimate waste streams and land used under various scenarios; use the sliders to change assumptions.\n", 
-        "Keep in mind that not all assumptions are equal, some are definitely better than others!" 
+        "Keep in mind that not all assumptions are equal, some are definitely better than others!\n",
+        "Read the model assumptions below for details on the initial parameter choices."
       ))
     })
     output$notes <- renderUI({
@@ -206,6 +208,8 @@ server <- function(input, output) {
       op2050<-df %>% filter(State=="operational") %>% summarise(mx=last(GW))
       cumInstalled<-df %>% filter(State=="cumInstalled") %>% summarise(mx=last(GW))
       waste2050<-df %>% filter(State=="cumFailed") %>% summarise(mx=last(GW))
+      dfw<-df %>% filter(State=="cumFailed")
+      print(dfw,n=100)
       
       msg<-""
       if (input$region=="World" && op2050<18749) {
@@ -214,7 +218,7 @@ server <- function(input, output) {
       hectares<-op2050*1000*(input$pvHaPerMW*(input$pvUtilityRatio/100))
       markdown(paste0(
         "Operational PV panels in 2050: **",comma(op2050),"** GW\n\n",
-        "Accumulated PV panel waste by 2050: **",comma(waste2050*1000*input$pvTonnagePerGW/1e6),"** million tonnes\n\n",
+        "Accumulated PV panel waste by 2050: **",comma(waste2050*1000*input$pvTonnagePerGW),"** tonnes\n\n",
         "Total PV tonnage deployed by 2050: **",comma(cumInstalled*1000*input$pvTonnagePerGW/1e6),"** million tonnes\n\n",
         "Total Utility scale land use: **",comma(hectares),"** hectares (based on operational GW)\n\n",
         msg,"\n\n",
