@@ -160,7 +160,7 @@ server <- function(input, output) {
       failFun<-makeWeibullFail(input$pvLifeSpan,input$pvFailParm)
       df <- df %>% mutate(produced=cumGWinstalled-lag(cumGWinstalled))
       df$produced[1]=df$cumGWinstalled[1]
-      print(df,n=60)
+      # print(df,n=60)
       # write_csv(df,"production.csv")
       
       ftab<-data.frame(matrix(0,nrow=nyears,ncol=nyears))
@@ -192,7 +192,7 @@ server <- function(input, output) {
       rc22<-input$pvRecycling22
       df3<-df2 %>% select(Year,State,GW) %>% pivot_wider(names_from=State,values_from=GW)
       # write_csv(df3,paste0("solarpv-statetable",rccagr,"pc-",rc22,"GW.csv"))
-      write_csv(df3,"df3.csv")
+      #write_csv(df3,"df3.csv")
       df2
     })
     output$topnotes <- renderUI({
@@ -209,7 +209,7 @@ server <- function(input, output) {
       cumInstalled<-df %>% filter(State=="cumInstalled") %>% summarise(mx=last(GW))
       waste2050<-df %>% filter(State=="cumFailed") %>% summarise(mx=last(GW))
       dfw<-df %>% filter(State=="cumFailed")
-      print(dfw,n=100)
+      # print(dfw,n=100)
       
       msg<-""
       if (input$region=="World" && op2050<18749) {
@@ -272,9 +272,9 @@ Reference (k=1) compared with selected"))
       # write_csv(df,"distdf.csv")
       
       mx<-df %>% filter(State=="operational") %>% summarise(mx=last(GW))
-      print(mx)
+      # print(mx)
       y1<-ymd(as.character(input$pvStartYear))
-      print(y1)
+      # print(y1)
       p<-df %>% filter(State %in% input$stylegraph) %>% ggplot(aes(x=Year,y=GW,fill=State))+
         geom_col(position="dodge")+labs(y="Gigawatts") + xlim(y1,ymd("2050-10-10")) +
         annotate('text',x=ymd("2030-01-01"),y=as.numeric(mx),vjust=0,label=paste0("Operational PV in 2050: ",comma(mx),"GW"),size=5)
