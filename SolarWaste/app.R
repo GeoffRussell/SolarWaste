@@ -196,7 +196,7 @@ server <- function(input, output) {
     })
     output$topnotes <- renderUI({
       markdown(paste0(
-        "\n",
+        "\n</br>\n",
         "Estimate waste streams and land used under various scenarios; use the sliders to change assumptions.\n", 
         "Keep in mind that not all assumptions are equal, some are definitely better than others!\n",
         "Read the model assumptions below for details on the initial parameter choices."
