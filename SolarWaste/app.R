@@ -8,6 +8,7 @@
 #
 
 library(shiny)
+library(shinythemes)
 library(tidyverse)
 library(modelr)
 library(markdown)
@@ -75,7 +76,7 @@ dcols<-c("operational","cumInstalled","cumFailed","recycled","produced")
 
 
 # Define UI for application 
-ui <- fluidPage(
+ui <- fluidPage(theme = shinytheme("cerulean"),
 
     # Application title
     titlePanel("Solar Panel Waste Tonnage over time"),
