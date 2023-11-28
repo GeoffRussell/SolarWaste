@@ -12,6 +12,7 @@ library(shinythemes)
 library(tidyverse)
 library(modelr)
 library(markdown)
+library(plotly)
 comma<-function(x) prettyNum(signif(x,digits=4),big.mark=",")
 markdownFile<-function(filename) {
   t<-read_file(filename)
@@ -74,6 +75,17 @@ bRecycledGWh<-rep(0,nyears)
 bFailed<-rep(0,nyears)
 dcols<-c("operational","cumInstalled","cumFailed","recycled","produced")
 
+#-------------------------------------------------------------------------------------------
+# Set up plotly
+#-------------------------------------------------------------------------------------------
+ggplconfig <- function(.data) {
+  config(.data,displayModeBar = "static", displaylogo = FALSE, 
+         modeBarButtonsToRemove = list("autoScale2d", 
+                                       "hoverClosestCartesian", "hoverCompareCartesian", 
+                                       "select2d", "zoomIn2d", "zoomOut2d","lasso2d","toggleSpikelines"))
+}
+
+
 
 # Define UI for application 
 ui <- fluidPage(theme = shinytheme("cerulean"),
@@ -112,11 +124,11 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
         mainPanel(
            uiOutput("topnotes"),
            markdown("## Gigawatts of solar PV panels"),
-           plotOutput("distPlot"),
+           plotlyOutput("distPlot"),
            uiOutput("notes"),
-           plotOutput("failPlot"),
+           plotlyOutput("failPlot"),
            markdown("## Material required"),
-           plotOutput("tonnagePlot"),
+           plotlyOutput("tonnagePlot"),
            markdownFile("model-notes.txt"),
            markdownFile("model-notes1.txt")
         )
@@ -236,7 +248,7 @@ server <- function(input, output) {
         "Change the \"PV failure parameter\" slider to see the impact of different assumptions. The class of models is widely used in product reliability models.\n"
         ))
     })
-    output$failPlot <- renderPlot({
+    output$failPlot <- renderPlotly({
       nyears<-100
       failWeibullRef<-makeWeibullFail(input$pvLifeSpan,1)
       failWeibull<-makeWeibullFail(input$pvLifeSpan,input$pvFailParm)
@@ -260,11 +272,12 @@ server <- function(input, output) {
         x=seq(1,100)
       )
       if (input$pvFailParm==1) {
-        dfout %>% ggplot()+
+        p<-dfout %>% ggplot()+
         geom_line(aes(x=x,y=expfail),color="blue") +
         labs(x="Years",y="Percentage Failed",title=paste0("Basic failure model with average panel life of ",input$pvLifeSpan," years"))
+        ggplotly(p) %>% ggplconfig
       } else {
-        dfout %>% ggplot()+
+        p<-dfout %>% ggplot()+
         geom_line(aes(x=x,y=expfail),color="blue") +
         geom_line(aes(x=x,y=wfail),color="red")+
         annotate('text',x=24,y=50,label="k=1",color="blue")+
@@ -272,9 +285,10 @@ server <- function(input, output) {
         labs(x="Years",y="Percentage Failed",title=paste0("Various failure models with average panel life of ",
                                                           input$pvLifeSpan,"years
 Reference (k=1) compared with selected"))
+        ggplotly(p) %>% ggplconfig
       }
     })
-    output$distPlot <- renderPlot({
+    output$distPlot <- renderPlotly({
       df<-genWasteData()
       dfw<-df %>% pivot_wider(names_from=`State`,values_from=`GW`) 
       model<-lm(cumGWinstalled~poly(as.numeric(Year),2),dfw[1:17,])
@@ -289,17 +303,18 @@ Reference (k=1) compared with selected"))
         geom_col(position="dodge")+labs(y="Gigawatts") + xlim(y1,ymd("2050-10-10")) +
         annotate('text',x=ymd("2030-01-01"),y=as.numeric(mx),vjust=0,label=paste0("Operational PV in 2050: ",comma(mx),"GW"),size=5)
       if (input$predict) {
-         p+geom_line(aes(x=Year,y=Predicted),color="red")
+         ggplotly(p+geom_line(aes(x=Year,y=Predicted),color="red")) %>% ggplconfig
       }
       else {
-         p
+         ggplotly(p) %>% ggplconfig
       }
     })
-    output$tonnagePlot <- renderPlot({
+    output$tonnagePlot <- renderPlotly({
       df<-genWasteData()
       y1<-ymd(as.character(input$pvStartYear))
-      df %>% ggplot(aes(x=Year,y=GW*input$pvTonnagePerGW*1000/1e6,fill=State))+ xlim(y1,ymd("2050-10-10")) +
+      p<-df %>% ggplot(aes(x=Year,y=GW*input$pvTonnagePerGW*1000/1e6,fill=State))+ xlim(y1,ymd("2050-10-10")) +
         geom_col(position="dodge")+labs(y="million tonnes") 
+      ggplotly(p) %>% ggplconfig
     })
     output$irenaimage<-renderImage(list(src="IRENA-2016-japan.png",height="400px"),deleteFile=FALSE)
     output$banner<-renderImage(list(src="solar-smashed-virgin-islands-s.jpg",height="200px"),deleteFile=FALSE)
