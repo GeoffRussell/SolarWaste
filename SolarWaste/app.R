@@ -18,6 +18,7 @@ markdownFile<-function(filename) {
   t<-read_file(filename)
   markdown(t)
 }
+options(scipen=999)
 
 # This global solar capacity factor so that the TWh for 2021 in the World Energy Stats (ex-BP) matches
 # the GW in the IEA Net Zero plan is solarCF<-0.13
@@ -299,7 +300,7 @@ Reference (k=1) compared with selected"))
       # print(mx)
       y1<-ymd(as.character(input$pvStartYear))
       # print(y1)
-      p<-df %>% filter(State %in% input$stylegraph) %>% ggplot(aes(x=Year,y=GW,fill=State))+
+      p<-df %>% filter(State %in% input$stylegraph) %>% mutate(GW=floor(GW)) %>% ggplot(aes(x=Year,y=GW,fill=State))+
         geom_col(position="dodge")+labs(y="Gigawatts") + xlim(y1,ymd("2050-10-10")) +
         annotate('text',x=ymd("2030-01-01"),y=as.numeric(mx),vjust=0,label=paste0("Operational PV in 2050: ",comma(mx),"GW"),size=5)
       if (input$predict) {
@@ -312,7 +313,7 @@ Reference (k=1) compared with selected"))
     output$tonnagePlot <- renderPlotly({
       df<-genWasteData()
       y1<-ymd(as.character(input$pvStartYear))
-      p<-df %>% ggplot(aes(x=Year,y=GW*input$pvTonnagePerGW*1000/1e6,fill=State))+ xlim(y1,ymd("2050-10-10")) +
+      p<-df %>% mutate(MegaTonnes=floor(GW*input$pvTonnagePerGW*1000/1e6)) %>% ggplot(aes(x=Year,y=MegaTonnes,fill=State))+ xlim(y1,ymd("2050-10-10")) +
         geom_col(position="dodge")+labs(y="million tonnes") 
       ggplotly(p) %>% ggplconfig
     })
