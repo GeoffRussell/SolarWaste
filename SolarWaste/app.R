@@ -92,7 +92,7 @@ ggplconfig <- function(.data) {
 ui <- fluidPage(theme = shinytheme("cerulean"),
 
     # Application title
-    titlePanel("Solar Panel Waste Tonnage over time"),
+    titlePanel("Solar Panel Waste Tonnage over time (v1.0)"),
     imageOutput("banner",height="200px"),
 
     sidebarLayout(
@@ -123,7 +123,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
         # now the main panel has the plots
         #-----------------------------------------------------------------------------------
         mainPanel(
-           uiOutput("topnotes"),
+           markdownFile("intro.txt"),
            markdown("## Gigawatts of solar PV panels"),
            plotlyOutput("distPlot"),
            uiOutput("notes"),
@@ -207,17 +207,6 @@ server <- function(input, output) {
       # write_csv(df3,paste0("solarpv-statetable",rccagr,"pc-",rc22,"GW.csv"))
       # write_csv(df3,"df3.csv")
       df2
-    })
-    output$topnotes <- renderUI({
-      markdown(paste0(
-        "\n</br>\n",
-        "This software estimates waste streams and land used under various PV scenarios. \n",
-        "Initial settings correspond with IEA Net Zero by 2050 targets (see below).\n",
-        "Use the sliders to change assumptions.\n", 
-        "Keep in mind that not all assumptions are equal, some are definitely better than others!\n",
-        "Read the model assumptions below for details on the initial parameter choices. \n",
-        "Hover over a bar on the chart to see the precise values ... drag an area to expand the view\n"
-      ))
     })
     output$notes <- renderUI({
       df<-genWasteData()

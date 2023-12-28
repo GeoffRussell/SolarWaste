@@ -1,0 +1,15 @@
+<br>
+
+### Introduction
+
+This software estimates waste streams and land used under various PV scenarios.
+
+Initial settings correspond with IEA Net Zero by 2050 targets (see below).
+
+Use the sliders to change assumptions.
+
+Keep in mind that not all assumptions are equal, some are definitely better than others!
+Read the model assumptions below for details on the initial parameter choices.
+Hover over a bar on the chart to see the precise values ... drag an area to expand the view.
+
+**N.B., the "produced" column is non-cumulative.**
